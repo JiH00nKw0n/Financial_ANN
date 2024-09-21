@@ -5,3 +5,4 @@ tiktoken~=0.7.0
 numpy~=2.1.1
 torch~=2.4.1
 tqdm~=4.66.5
+datasets~=3.0.0

@@ -13,6 +13,8 @@ from .base import BaseEmbedding
 
 logger = logging.getLogger(__name__)
 
+__all__ = ['OpenAIEmbedding', 'LinqEmbedding']
+
 
 class OpenAIEmbedding(BaseEmbedding):
 

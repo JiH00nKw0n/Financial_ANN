@@ -42,3 +42,10 @@ class BaseEmbedding(BaseModel):
             device,
             normalize_embeddings
         )
+
+
+class BaseBuilder(BaseModel):
+    split: Optional[str | List[str]] = None
+
+    def build_datasets(self):
+        raise NotImplementedError
