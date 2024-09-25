@@ -27,7 +27,6 @@ class BaseEmbedding(BaseModel):
 
             self.load_state_dict()
 
-
     def load_state_dict(self):
         self.state_dict_cache = torch.load(self.save_path, map_location=torch.device(self.device))
 
@@ -143,7 +142,7 @@ class BaseEmbedding(BaseModel):
 
             self.save_state_dict()
 
-            return get_cached_embeddings(
+            return self.get_cached_embeddings(
                 indices=indices,
                 show_progress_bar=show_progress_bar,
                 precision=precision,
