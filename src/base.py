@@ -10,6 +10,7 @@ class BaseEmbedding(BaseModel):
     tokenizer: Optional[Any] = None
     max_length: Optional[int] = None
     batch_size: Optional[int] = 128
+    use_cache: Optional[bool] = True
 
     def get_embeddings(
             self,
