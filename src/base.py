@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from pydantic import BaseModel, ConfigDict, Extra
 from typing import Any, Optional, Union, List, Dict
+from collections import OrderedDict
 
 
 class BaseEmbedding(BaseModel):
@@ -11,6 +12,71 @@ class BaseEmbedding(BaseModel):
     max_length: Optional[int] = None
     batch_size: Optional[int] = 128
     use_cache: Optional[bool] = True
+    state_dict_cache: Optional[OrderedDict] = None
+    cache_dir: Optional[str] = None
+    save_path: Optional[str] = None
+    device: Optional[str] = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    def model_post_init(self, __context: Any):
+        super().model_post_init(__context)
+        if self.use_cache:
+            if self.state_dict_cache is None:
+                self.state_dict_cache = OrderedDict()
+
+            self.save_path = os.path.join(self.cache_dir, self.model, f"{self.max_length}.pth")
+
+            self.load_state_dict()
+
+
+    def load_state_dict(self):
+        self.state_dict_cache = torch.load(self.save_path, map_location=torch.device(self.device))
+
+    def save_state_dict(self):
+        torch.save(self.state_dict_cache, self.save_path)
+
+    def get_cached_embeddings(
+            self,
+            indices: Union[int, List[int]],
+            show_progress_bar: Optional[bool] = None,
+            precision: Optional[str] = "float32",
+            convert_to_numpy: bool = False,
+            convert_to_tensor: bool = True,
+            device: Optional[str] = None,
+            normalize_embeddings: bool = True,
+    ) -> Union[List[torch.Tensor], np.ndarray, torch.Tensor]:
+
+        if isinstance(indices, int):  # If a single text, convert it to list
+            indices = [indices]
+
+        if show_progress_bar is None:
+            show_progress_bar = True  # Default to showing progress bar
+
+        encoded_embeds = []
+        for idx in tqdm(
+                range(len(indices)),
+                desc=f"Getting from state_dict_cache",
+                disable=not show_progress_bar
+        ):
+            embed = self.state_dict_cache[idx].unsqueeze(0)
+            encoded_embeds.append(embed)
+
+        encoded_embeds = torch.cat(encoded_embeds, dim=0)  # Stack all embeddings along dimension 0
+
+        # Optional: normalize embeddings if required
+        if normalize_embeddings:
+            encoded_embeds = torch.nn.functional.normalize(encoded_embeds, p=2, dim=1)
+
+        # Convert precision if specified
+        if precision and precision != "float32":
+            encoded_embeds = encoded_embeds.to(dtype=getattr(torch, precision))
+
+        # Convert to numpy or tensor based on options
+        if convert_to_numpy:
+            return encoded_embeds.cpu().numpy()
+        elif convert_to_tensor:
+            return encoded_embeds.to(device=device)
+        else:
+            return encoded_embeds.tolist()
 
     def get_embeddings(
             self,
@@ -27,6 +93,7 @@ class BaseEmbedding(BaseModel):
     def __call__(
             self,
             texts: Union[str, List[str]],
+            indices: Union[int, List[int]],
             show_progress_bar: Optional[bool] = None,
             precision: Optional[str] = "float32",
             convert_to_numpy: bool = False,
@@ -34,15 +101,57 @@ class BaseEmbedding(BaseModel):
             device: Optional[str] = None,
             normalize_embeddings: bool = True,
     ):
-        return self.get_embeddings(
-            texts,
-            show_progress_bar,
-            precision,
-            convert_to_numpy,
-            convert_to_tensor,
-            device,
-            normalize_embeddings
-        )
+        if not self.use_cache or self.state_dict_cache is None:
+            return self.get_embeddings(
+                texts=texts,
+                show_progress_bar=show_progress_bar,
+                precision=precision,
+                convert_to_numpy=convert_to_numpy,
+                convert_to_tensor=convert_to_tensor,
+                device=device,
+                normalize_embeddings=normalize_embeddings
+            )
+        else:
+            if isinstance(texts, str):
+                texts = [texts]
+            if isinstance(indices, int):
+                indices = [indices]
+
+            if not len(indices) == len(texts):
+                raise ValueError()
+
+            indices_to_embed = []
+            texts_to_embed = []
+
+            for idx, text in zip(indices, texts):
+                if idx not in self.state_dict_cache:
+                    indices_to_embed.append(idx)
+                    texts_to_embed.append(text)
+
+            embeddings_to_cache = self.get_embeddings(
+                texts=texts_to_embed,
+                show_progress_bar=show_progress_bar,
+                precision=precision,
+                convert_to_numpy=convert_to_numpy,
+                convert_to_tensor=convert_to_tensor,
+                device=device,
+                normalize_embeddings=normalize_embeddings
+            )
+
+            for i, idx in enumerate(indices_to_embed):
+                self.state_dict_cache[idx] = embeddings_to_cache[i]
+
+            self.save_state_dict()
+
+            return get_cached_embeddings(
+                indices=indices,
+                show_progress_bar=show_progress_bar,
+                precision=precision,
+                convert_to_numpy=convert_to_numpy,
+                convert_to_tensor=convert_to_tensor,
+                device=device,
+                normalize_embeddings=normalize_embeddings
+            )
 
 
 class BaseBuilder(BaseModel):
