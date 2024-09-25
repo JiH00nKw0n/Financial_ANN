@@ -57,7 +57,7 @@ class BaseEmbedding(BaseModel):
                 desc=f"Getting from state_dict_cache",
                 disable=not show_progress_bar
         ):
-            embed = self.state_dict_cache[idx].unsqueeze(0)
+            embed = self.state_dict_cache[idx]
             encoded_embeds.append(embed)
 
         encoded_embeds = torch.cat(encoded_embeds, dim=0)  # Stack all embeddings along dimension 0
