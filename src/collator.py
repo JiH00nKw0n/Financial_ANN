@@ -9,6 +9,8 @@ from .base import BaseCollator
 class CollatorForBinaryClassification(BaseCollator):
 
     def _process(self, inputs: List[Dict], **kwargs) -> Dict[str, torch.Tensor]:
+        inputs = [i for i in inputs if all(value is not None for value in i.values())]
+
         output = defaultdict()
 
         text_inputs: List[str] = [i['text'] for i in inputs]

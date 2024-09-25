@@ -19,11 +19,12 @@ __all__ = ['OpenAIEmbedding', 'LinqEmbedding']
 class OpenAIEmbedding(BaseEmbedding):
 
     def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
         if self.model is None:
             self.model = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY')).embeddings
 
         if self.tokenizer is None:
-            self.tokenizer = tiktoken.encoding_for_model(self.model_name)
+            self.tokenizer = tiktoken.encoding_for_model(self.name_or_path)
 
         if self.max_length is None or self.max_length > 8192:
             logger.info(
@@ -85,10 +86,10 @@ class OpenAIEmbedding(BaseEmbedding):
                 disable=not show_progress_bar
         ):
             batch_input_texts = truncated_texts[start_index:start_index + self.batch_size]
-            datas = self.model.create(input=batch_input_texts, model=self.model_name_or_path).data
+            datas = self.model.create(input=batch_input_texts, model=self.name_or_path).data
 
             for data in datas:
-                embed = torch.tensor(data['embedding'], dtype=torch.float32).unsqueeze(0)
+                embed = torch.tensor(data.embedding, dtype=torch.float32).unsqueeze(0)
                 encoded_embeds.append(embed)
 
         encoded_embeds = torch.cat(encoded_embeds, dim=0)  # Stack all embeddings along dimension 0
@@ -124,24 +125,25 @@ def last_token_pool(
 
 
 class LinqEmbedding(BaseEmbedding):
-    model_name_or_path: Optional[str] = 'Linq-AI-Research/Linq-Embed-Mistral'
+    name_or_path: Optional[str] = 'Linq-AI-Research/Linq-Embed-Mistral'
 
     def model_post_init(self, __context: Any) -> None:
-        if self.model_name_or_path != 'Linq-AI-Research/Linq-Embed-Mistral':
+        super().model_post_init(__context)
+        if self.name_or_path != 'Linq-AI-Research/Linq-Embed-Mistral':
             logger.warning(
-                f"Invalid model name or path: {self.model_name_or_path}. "
+                f"Invalid model name or path: {self.name_or_path}. "
                 f"Set to 'Linq-AI-Research/Linq-Embed-Mistral'."
             )
-            self.model_name_or_path = 'Linq-AI-Research/Linq-Embed-Mistral'
+            self.name_or_path = 'Linq-AI-Research/Linq-Embed-Mistral'
         if self.model is None:
             self.model = AutoModel.from_pretrained(
-                pretrained_model_name_or_path=self.model_name_or_path,
+                pretrained_model_name_or_path=self.name_or_path,
                 torch_dtype=torch.float16
             )
 
         if self.tokenizer is None:
             self.tokenizer = AutoTokenizer.from_pretrained(
-                pretrained_model_name_or_path=self.model_name_or_path
+                pretrained_model_name_or_path=self.name_or_path
             )
 
         if self.max_length is None or self.max_length > 32768:

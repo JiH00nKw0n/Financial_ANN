@@ -3,10 +3,12 @@ import torch
 from pydantic import BaseModel, ConfigDict, Extra
 from typing import Any, Optional, Union, List, Dict
 from collections import OrderedDict
+import os
+from tqdm import tqdm
 
 
 class BaseEmbedding(BaseModel):
-    model_name_or_path: Optional[str] = None
+    name_or_path: Optional[str] = None
     model: Optional[Any] = None
     tokenizer: Optional[Any] = None
     max_length: Optional[int] = None
@@ -23,12 +25,15 @@ class BaseEmbedding(BaseModel):
             if self.state_dict_cache is None:
                 self.state_dict_cache = OrderedDict()
 
-            self.save_path = os.path.join(self.cache_dir, self.model, f"{self.max_length}.pth")
+            os.makedirs(os.path.join(self.cache_dir, self.name_or_path), exist_ok=True)
+
+            self.save_path = os.path.join(self.cache_dir, self.name_or_path, f"{self.max_length}.pth")
 
             self.load_state_dict()
 
     def load_state_dict(self):
-        self.state_dict_cache = torch.load(self.save_path, map_location=torch.device(self.device))
+        if os.path.isfile(self.save_path):
+            self.state_dict_cache = torch.load(self.save_path, map_location=torch.device(self.device))
 
     def save_state_dict(self):
         torch.save(self.state_dict_cache, self.save_path)
@@ -52,11 +57,11 @@ class BaseEmbedding(BaseModel):
 
         encoded_embeds = []
         for idx in tqdm(
-                range(len(indices)),
+                indices,
                 desc=f"Getting from state_dict_cache",
                 disable=not show_progress_bar
         ):
-            embed = self.state_dict_cache[idx]
+            embed = self.state_dict_cache[idx].unsqueeze(0)
             encoded_embeds.append(embed)
 
         encoded_embeds = torch.cat(encoded_embeds, dim=0)  # Stack all embeddings along dimension 0
@@ -127,20 +132,22 @@ class BaseEmbedding(BaseModel):
                     indices_to_embed.append(idx)
                     texts_to_embed.append(text)
 
-            embeddings_to_cache = self.get_embeddings(
-                texts=texts_to_embed,
-                show_progress_bar=show_progress_bar,
-                precision=precision,
-                convert_to_numpy=convert_to_numpy,
-                convert_to_tensor=convert_to_tensor,
-                device=device,
-                normalize_embeddings=normalize_embeddings
-            )
+            if len(texts_to_embed) != 0:
+                embeddings_to_cache = self.get_embeddings(
+                    texts=texts_to_embed,
+                    show_progress_bar=show_progress_bar,
+                    precision=precision,
+                    convert_to_numpy=convert_to_numpy,
+                    convert_to_tensor=convert_to_tensor,
+                    device=device,
+                    normalize_embeddings=normalize_embeddings
+                )
 
-            for i, idx in enumerate(indices_to_embed):
-                self.state_dict_cache[idx] = embeddings_to_cache[i]
+                for i, idx in enumerate(indices_to_embed):
+                    self.state_dict_cache[idx] = embeddings_to_cache[i]
 
-            self.save_state_dict()
+                self.save_state_dict()
+
 
             return self.get_cached_embeddings(
                 indices=indices,
@@ -196,7 +203,7 @@ class BaseTask(BaseModel):
     """
 
     config: Any
-    model_config = ConfigDict(extra=Extra.forbid)
+    model_config = ConfigDict(extra='forbid')
 
     @classmethod
     def setup_task(cls, config: Any):
@@ -249,7 +256,7 @@ class BaseTrainTask(BaseTask):
     """
 
     config: Any
-    model_config = ConfigDict(extra=Extra.forbid)
+    model_config = ConfigDict(extra='forbid')
 
     @classmethod
     def setup_task(cls, config: Any):
@@ -311,7 +318,7 @@ class BaseEvaluateTask(BaseTask):
     """
 
     config: Any
-    model_config = ConfigDict(extra=Extra.forbid)
+    model_config = ConfigDict(extra='forbid')
 
     @classmethod
     def setup_task(cls, config: Any):
