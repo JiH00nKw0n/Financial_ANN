@@ -140,6 +140,7 @@ class LinqEmbedding(BaseEmbedding):
                 pretrained_model_name_or_path=self.name_or_path,
                 torch_dtype=torch.float16
             )
+            self.model.to(self.device)
 
         if self.tokenizer is None:
             self.tokenizer = AutoTokenizer.from_pretrained(

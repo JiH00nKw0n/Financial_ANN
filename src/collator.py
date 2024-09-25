@@ -9,7 +9,10 @@ from .base import BaseCollator
 class CollatorForBinaryClassification(BaseCollator):
 
     def _process(self, inputs: List[Dict], **kwargs) -> Dict[str, torch.Tensor]:
-        inputs = [i for i in inputs if all(value is not None for value in i.values())]
+        colums_to_check = ['text', 'ticker', 'event_start_at_et', 'd+1_open', 'd+2_open', 'd+3_open', 'd+1_close', 'd+2_close', 'd+3_close']
+
+        # Filter inputs by checking only the values in colums_to_check
+        inputs = [i for i in inputs if all(i[col] is not None for col in colums_to_check if col in i)]
 
         output = defaultdict()
 
