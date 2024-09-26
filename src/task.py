@@ -27,31 +27,17 @@ class TrainTask(BaseTrainTask):
     config: TrainConfig
 
     def build_model(self, model_config: Optional[Dict] = None):
-        """
-        Builds a custom model using the provided configuration from the registry. If a LoRA configuration
-        is provided for either text or vision models, it applies the configuration for parameter-efficient fine-tuning.
-
-        Args:
-            model_config (`Optional[Dict]`, *optional*):
-                The model configuration dictionary. If not provided, uses the configuration from `self.config`.
-
-        Returns:
-            `ModelType`: The custom model instance with optional LoRA fine-tuning.
-
-        Raises:
-            TypeError: If `model_config.lora` is not a valid `DictConfig` object.
-        """
         model_config = model_config if model_config is not None else self.config.model_config.copy()
 
         # Get the model configuration and model class from the registry
-        model_cfg_cls = registry.get_model_config_class(model_config.config_cls)
-        model_cls = registry.get_model_class(model_config.model_cls)
+        config_cls = registry.get_model_config_class(model_config.config_cls_name)
+        model_cls = registry.get_model_class(model_config.model_cls_name)
 
         assert model_cls is not None, "Model {} not properly registered.".format(model_cls)
-        assert model_cfg_cls is not None, "Model config {} not properly registered.".format(model_cfg_cls)
+        assert config_cls is not None, "Model config {} not properly registered.".format(config_cls)
 
         # Initialize the model configuration and model
-        model_cfg = model_cfg_cls(**model_config.config)
+        model_cfg = config_cls(**model_config.config)
         model = model_cls(model_cfg)
 
         return model.cuda().train()
