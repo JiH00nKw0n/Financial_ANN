@@ -22,6 +22,14 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
+def setup_task(config):
+    assert "task" in config.run_config, "Task name must be provided."
+
+    task_name = config.run_config.task
+    task = registry.get_task_class(task_name).setup_task(config=config)
+    assert task is not None, "Task {} not properly registered.".format(task_name)
+
+    return task
 
 class TrainTask(BaseTrainTask):
     config: TrainConfig

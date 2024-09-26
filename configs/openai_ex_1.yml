@@ -1,0 +1,69 @@
+run:
+  task: 'TrainTask'
+  runner: 'NegCLIPTrainer'
+  seed: 2024
+
+model:
+  model_cls_name: 'BaseModelForTokenClassification'
+  config_cls_name: 'BaseConfig'
+  config:
+    hidden_size: 3072
+    intermediate_size: 6144
+    hidden_act: 'relu'
+    classifier_dropout: 0.0
+    hidden_droput: 0.0
+
+
+embedding:
+  cls_name: 'OpenAIEmbedding'
+  config:
+    name_or_path: 'text-embedding-3-large'
+    max_length: 512
+    batch_size: 512
+    use_cache: True
+    cache_dir: 'TBD'
+    device: 'cuda'
+
+collator:
+  cls_name: 'CollatorForBinaryClassification'
+  config:
+    show_progress_bar: True
+    precision: "float32"
+    convert_to_numpy: False
+    convert_to_tensor: True
+    device: 'cuda'
+    normalize_embeddings: True
+
+dataset:
+  cls_name: 'FinancialTranscriptBuilder'
+  config:
+    - 'train'
+    - 'val'
+
+trainer:
+  output_dir: 'TBD'
+  run_name : 'OpenAI-512' # for wandb
+  learning_rate: &learning_rate 1.0e-5
+  lr_scheduler_type: 'cosine'
+  warmup_steps: &warmup_steps 10
+  weight_decay: &weight_decay 1.0e-1
+  save_steps: 10
+  logging_steps : 1
+  do_eval: True
+  eval_strategy: 'steps'
+  eval_steps: 10
+  num_train_epochs: 4
+  per_device_train_batch_size : &per_device_batch_size 4096 # default 1024
+  gradient_accumulation_steps: &gradient_accumulation 2
+  # For memory efficiency.
+  gradient_checkpointing : True
+  # NOTE : need to use this option to cope with DDP
+  gradient_checkpointing_kwargs:
+    use_reentrant: False
+  ddp_find_unused_parameters: False
+  fp16: &fp16 True # use torch.float16
+  fp16_opt_level : '01'
+  bf16: &bf16 False # Use torch.bfloat16
+  group_by_length : False # Whether to order the sample by token length.
+  use_cpu : False
+  remove_unused_columns : False
