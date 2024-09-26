@@ -6,8 +6,11 @@ from typing import Optional
 
 from transformers.trainer_pt_utils import LengthGroupedSampler
 
+from .registry import registry
 
-class CustomTrainer(Trainer):
+@registry.register_trainer('SequentialTrainer')
+class SequentialTrainer(Trainer):
+
     def _get_train_sampler(self) -> Optional[torch.utils.data.Sampler]:
         """
         Returns a SequentialSampler for the training dataset instead of the default RandomSampler.

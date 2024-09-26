@@ -31,6 +31,8 @@ def setup_task(config):
 
     return task
 
+
+@registry.register_task('TrainTask')
 class TrainTask(BaseTrainTask):
     config: TrainConfig
 
@@ -92,7 +94,7 @@ class TrainTask(BaseTrainTask):
 
         assert builder_cls is not None, "Builder {} not properly registered.".format(builder_name)
 
-        return builder_cls(**dataset_config.config)
+        return builder_cls(**dataset_config.config).build_datasets()
 
     def build_trainer(
             self,
@@ -114,6 +116,6 @@ class TrainTask(BaseTrainTask):
             model=model,
             args=TrainingArguments(**trainer_config),
             train_dataset=dataset['train'],
-            eval_dataset=dataset['eval'],
+            eval_dataset=dataset['val'],
             data_collator=collator,
         )

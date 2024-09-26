@@ -37,8 +37,9 @@ collator:
 dataset:
   cls_name: 'FinancialTranscriptBuilder'
   config:
-    - 'train'
-    - 'val'
+    split:
+      - 'train'
+      - 'val'
 
 trainer:
   output_dir: 'TBD'

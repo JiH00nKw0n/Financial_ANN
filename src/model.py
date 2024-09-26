@@ -46,8 +46,8 @@ class MLPWithTwoHiddenLayers(nn.Module):
 
         self.fc3 = nn.Linear(config.intermediate_size, config.hidden_size)
 
-    def forward(self, input_embeds: Tensor) -> Tensor:
-        hidden_states = self.fc1(input_embeds)
+    def forward(self, inputs_embeds: Tensor) -> Tensor:
+        hidden_states = self.fc1(inputs_embeds)
         hidden_states = self.activation_fn(hidden_states)
 
         hidden_states = self.fc2(hidden_states)

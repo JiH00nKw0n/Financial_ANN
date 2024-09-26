@@ -47,7 +47,7 @@ def main() -> None:
 
     args = parse_args()
     file_name = args.cfg_path.split('/')[-1].replace('.yml', '')
-    file_handler = logging.FileHandler(f'{os.getenv("LOG_DIR")}/{file_name}.log/')
+    file_handler = logging.FileHandler(f'{os.getenv("LOG_DIR")}/{file_name}_{job_id}.log/')
     file_handler.setLevel(logging.DEBUG)
 
     # 로그 메시지 포맷 설정

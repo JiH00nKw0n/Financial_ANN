@@ -3,7 +3,7 @@ from pydantic.dataclasses import dataclass
 from pydantic import ConfigDict
 from omegaconf import OmegaConf, DictConfig
 
-__all__ = ["TrainConfig", "EvaluateConfig"]
+__all__ = ["BaseConfig", "TrainConfig", "EvaluateConfig"]
 
 
 @dataclass(config=ConfigDict(
@@ -49,7 +49,7 @@ class BaseConfig:
 
     @property
     def collator_config(self) -> DictConfig:
-        return OmegaConf.create(self.embedding)
+        return OmegaConf.create(self.collator)
 
     @property
     def dataset_config(self) -> DictConfig:

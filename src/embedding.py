@@ -10,12 +10,13 @@ from transformers import AutoModel, AutoTokenizer
 import tiktoken
 
 from .base import BaseEmbedding
+from .registry import registry
 
 logger = logging.getLogger(__name__)
 
 __all__ = ['OpenAIEmbedding', 'LinqEmbedding']
 
-
+@registry.register_embedding('OpenAIEmbedding')
 class OpenAIEmbedding(BaseEmbedding):
 
     def model_post_init(self, __context: Any) -> None:

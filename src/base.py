@@ -56,11 +56,7 @@ class BaseEmbedding(BaseModel):
             show_progress_bar = True  # Default to showing progress bar
 
         encoded_embeds = []
-        for idx in tqdm(
-                indices,
-                desc=f"Getting from state_dict_cache",
-                disable=not show_progress_bar
-        ):
+        for idx in indices:
             embed = self.state_dict_cache[idx].unsqueeze(0)
             encoded_embeds.append(embed)
 

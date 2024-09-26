@@ -2,8 +2,11 @@ from typing import Optional, List
 
 from datasets import load_dataset, DatasetDict
 
+from .base import BaseBuilder
+from .registry import registry
 
-class FinancialTranscriptBuilder:
+@registry.register_builder('FinancialTranscriptBuilder')
+class FinancialTranscriptBuilder(BaseBuilder):
     split: Optional[str | List[str]] = ['train', 'val']
 
     def build_datasets(self) -> DatasetDict:

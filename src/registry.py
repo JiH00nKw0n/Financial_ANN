@@ -37,7 +37,7 @@ class Registry:
     }
 
     @classmethod
-    def register_embedder(cls, name):
+    def register_embedding(cls, name):
         """
         Registers an embedding class with a given name.
 
