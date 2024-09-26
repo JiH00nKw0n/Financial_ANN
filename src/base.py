@@ -227,12 +227,21 @@ class BaseTask(BaseModel):
         """
         raise NotImplementedError
 
-    def build_processor(
+    def build_embedding(
             self,
-            processor_config: Optional[Dict] = None
+            embedding_config: Optional[Dict] = None
     ):
         """
-        Abstract method for building a processor. Must be implemented by subclasses.
+        Abstract method for building a embedding. Must be implemented by subclasses.
+        """
+        raise NotImplementedError
+
+    def build_collator(
+            self,
+            collator_config: Optional[Dict] = None
+    ):
+        """
+        Abstract method for building a collator. Must be implemented by subclasses.
         """
         raise NotImplementedError
 
@@ -258,46 +267,6 @@ class BaseTrainTask(BaseTask):
     config: Any
     model_config = ConfigDict(extra='forbid')
 
-    @classmethod
-    def setup_task(cls, config: Any):
-        """
-        Initialize and return an instance of the task using the provided configuration.
-
-        Args:
-            config (Any): The configuration for the task.
-
-        Returns:
-            BaseTask: An instance of the task.
-        """
-        return cls(config=config)
-
-    def build_model(
-            self,
-            model_config: Optional[Dict] = None
-    ):
-        """
-        Abstract method for building a model. Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-    def build_processor(
-            self,
-            processor_config: Optional[Dict] = None
-    ):
-        """
-        Abstract method for building a processor. Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-    def build_datasets(
-            self,
-            dataset_config: Optional[Dict] = None,
-    ):
-        """
-        Abstract method for building datasets. Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
     def build_trainer(
             self,
             trainer_config: Optional[Dict] = None,
@@ -319,46 +288,6 @@ class BaseEvaluateTask(BaseTask):
 
     config: Any
     model_config = ConfigDict(extra='forbid')
-
-    @classmethod
-    def setup_task(cls, config: Any):
-        """
-        Initialize and return an instance of the task using the provided configuration.
-
-        Args:
-            config (Any): The configuration for the task.
-
-        Returns:
-            BaseTask: An instance of the task.
-        """
-        return cls(config=config)
-
-    def build_model(
-            self,
-            model_config: Optional[Dict] = None
-    ):
-        """
-        Abstract method for building a model. Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-    def build_processor(
-            self,
-            processor_config: Optional[Dict] = None
-    ):
-        """
-        Abstract method for building a processor. Must be implemented by subclasses.
-        """
-        raise NotImplementedError
-
-    def build_datasets(
-            self,
-            dataset_config: Optional[Dict] = None,
-    ):
-        """
-        Abstract method for building datasets. Must be implemented by subclasses.
-        """
-        raise NotImplementedError
 
     def build_evaluator(
             self,
