@@ -4,14 +4,16 @@ run:
   seed: 2024
 
 model:
-  model_cls_name: 'BaseModelForTokenClassification'
-  config_cls_name: 'BaseConfig'
+  model_cls_name: 'MLPModelForTokenClassification'
+  config_cls_name: 'MLPModelConfig'
   config:
     hidden_size: 3072
     intermediate_size: 6144
     hidden_act: 'relu'
     classifier_dropout: 0.0
-    hidden_droput: 0.0
+    hidden_dropout: 0.0
+    num_labels: 2
+    num_mlp_layers: 2
 
 
 embedding:

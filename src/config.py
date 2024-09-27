@@ -105,13 +105,8 @@ class EvaluateConfig(BaseConfig):
         dataset_config (List):
             Returns the dataset configuration as a list.
     """
-    dataset: List
-    evaluator: List
+    evaluator: Dict
 
     @property
-    def evaluator_config(self) -> List:
-        return self.evaluator
-
-    @property
-    def dataset_config(self) -> List:
-        return self.dataset
+    def evaluator_config(self) -> DictConfig:
+        return OmegaConf.create(self.evaluator)

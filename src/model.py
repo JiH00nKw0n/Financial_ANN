@@ -4,40 +4,27 @@ import torch
 from torch import nn, Tensor
 from torch.nn import CrossEntropyLoss
 
-from transformers import PreTrainedModel, PretrainedConfig, AutoModel, AutoConfig
+from transformers import AutoModel, AutoConfig
 from transformers.activations import ACT2FN
 from transformers.modeling_outputs import TokenClassifierOutput
 
 from .registry import registry
+from .base import BaseModelConfig, BasePreTrainedModel
 
-MODEL_TYPE = 'base'
+MODEL_TYPE = 'mlp'
 
 
-@registry.register_model_config("BaseConfig")
-class BaseConfig(PretrainedConfig):
+@registry.register_model_config("MLPModelConfig")
+class MLPModelConfig(BaseModelConfig):
     model_type = MODEL_TYPE
 
-    def __init__(
-            self,
-            hidden_size: int = 4096,
-            intermediate_size: int = 8192,
-            hidden_act: str = 'relu',
-            classifier_dropout: float = 0.0,
-            hidden_droput: float = 0.0,
-            **kwargs
-    ):
-        super().__init__(**kwargs)
-        self.hidden_size = hidden_size
-        self.intermediate_size = intermediate_size
-        self.hidden_act = hidden_act
-        self.classifier_dropout = classifier_dropout
-        self.hidden_dropout = hidden_droput
 
 
 class MLPWithTwoHiddenLayers(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, layer_idx: int):
         super().__init__()
         self.config = config
+        self.layer_idx = layer_idx
         self.activation_fn = ACT2FN[config.hidden_act]
 
         self.fc1 = nn.Linear(config.hidden_size, config.intermediate_size)
@@ -46,8 +33,8 @@ class MLPWithTwoHiddenLayers(nn.Module):
 
         self.fc3 = nn.Linear(config.intermediate_size, config.hidden_size)
 
-    def forward(self, inputs_embeds: Tensor) -> Tensor:
-        hidden_states = self.fc1(inputs_embeds)
+    def forward(self, hidden_states: Tensor) -> Tensor:
+        hidden_states = self.fc1(hidden_states)
         hidden_states = self.activation_fn(hidden_states)
 
         hidden_states = self.fc2(hidden_states)
@@ -57,31 +44,18 @@ class MLPWithTwoHiddenLayers(nn.Module):
         return output
 
 
-class BasePreTrainedModel(PreTrainedModel):
-    """
-    An abstract class to handle weights initialization and a simple interface for downloading and loading pretrained
-    models.
-    """
+@registry.register_model("MLPModelForTokenClassification")
+class MLPModelForTokenClassification(BasePreTrainedModel):
+    config_class = MLPConfig
+    base_model_prefix = MODEL_TYPE
+    supports_gradient_checkpointing = False
 
-    config_class = BaseConfig
-    base_model_prefix = "base"
-    supports_gradient_checkpointing = True
-
-    def _init_weights(self, module):
-        """Initialize the weights"""
-        if isinstance(module, nn.LayerNorm):
-            module.bias.data.zero_()
-            module.weight.data.fill_(1.0)
-        if isinstance(module, nn.Linear) and module.bias is not None:
-            module.bias.data.zero_()
-
-
-@registry.register_model("BaseModelForTokenClassification")
-class BaseModelForTokenClassification(BasePreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-        self.model = MLPWithTwoHiddenLayers(config)
+        self.layers = nn.ModuleList(
+            [MLPWithTwoHiddenLayers(config, layer_idx) for layer_idx in range(config.num_mlp_layers)]
+        )
         if getattr(config, "classifier_dropout", None) is not None:
             classifier_dropout = config.classifier_dropout
         elif getattr(config, "hidden_dropout", None) is not None:
@@ -106,11 +80,15 @@ class BaseModelForTokenClassification(BasePreTrainedModel):
             `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
         """
 
-        sequence_output = self.model(
-            inputs_embeds=inputs_embeds,
-        )
-        sequence_output = self.dropout(sequence_output)
-        logits = self.score(sequence_output)
+        hidden_states = inputs_embeds
+
+        for mlp_layer in self.layers:
+            layer_output = mlp_layer(
+                hidden_states=hidden_states,
+            )
+            layer_output = self.dropout(layer_output)
+
+        logits = self.score(layer_output)
 
         loss = None
         if labels is not None:
@@ -124,4 +102,4 @@ class BaseModelForTokenClassification(BasePreTrainedModel):
 
 
 AutoConfig.register(MODEL_TYPE, BaseConfig)
-AutoModel.register(BaseConfig, BaseModelForTokenClassification)
+AutoModel.register(BaseConfig, MLPModelForTokenClassification)

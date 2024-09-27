@@ -1,17 +1,16 @@
 import logging
-import os
 from typing import Optional, Dict, Type, TypeVar
 
-from datasets import Dataset, IterableDataset, interleave_datasets, concatenate_datasets
-from omegaconf import DictConfig
+from datasets import Dataset, IterableDataset
 from transformers import (
     PreTrainedModel,
     TrainingArguments,
 )
 
+from . import BaseEvaluateTask
 from .registry import registry
 from .base import BaseTrainTask
-from .config import TrainConfig
+from .config import TrainConfig, EvaluateConfig
 
 ModelType = Type[PreTrainedModel]
 DatasetType = TypeVar("DatasetType", Dataset, IterableDataset)
@@ -118,4 +117,87 @@ class TrainTask(BaseTrainTask):
             train_dataset=dataset['train'],
             eval_dataset=dataset['val'],
             data_collator=collator,
+        )
+
+
+@registry.register_task('EvaluateTask')
+class EvaluateTask(BaseEvaluateTask):
+    config: EvaluateConfig
+
+    def build_model(self, model_config: Optional[Dict] = None):
+        model_config = model_config if model_config is not None else self.config.model_config.copy()
+
+        model_cls = registry.get_model_class(model_config.model_cls_name)
+
+        assert model_cls is not None, "Model {} not properly registered.".format(model_cls)
+
+        model = model_cls(**model_config.config)
+
+        return model.cuda().eval()
+
+
+    def build_embedding(
+            self,
+            embedding_config: Optional[Dict] = None
+    ):
+        embedding_config = embedding_config if embedding_config is not None else self.config.embedding_config
+
+        embedding_name = embedding_config.cls_name
+        embedding_cls = registry.get_embedding_class(embedding_name)
+        assert embedding_cls is not None, "Embedding {} not properly registered.".format(embedding_name)
+
+        return embedding_cls(**embedding_config.config)
+
+    def build_collator(
+            self,
+            collator_config: Optional[Dict] = None
+    ):
+        collator_config = collator_config if collator_config is not None else self.config.collator_config
+
+        collator_name = collator_config.cls_name
+        collator_cls = registry.get_collator_class(collator_name)
+
+        assert collator_cls is not None, "Collator {} not properly registered.".format(collator_name)
+
+        feature_extractor = self.build_embedding()
+
+        return collator_cls(
+            feature_extractor=feature_extractor,
+            **collator_config.config
+        )
+
+    def build_datasets(
+            self,
+            dataset_config: Optional[Dict] = None,
+    ):
+        dataset_config = dataset_config if dataset_config is not None else self.config.dataset_config
+
+        builder_name = dataset_config.cls_name
+        builder_cls = registry.get_builder_class(builder_name)
+
+        assert builder_cls is not None, "Builder {} not properly registered.".format(builder_name)
+
+        return builder_cls(**dataset_config.config).build_datasets()
+
+    def build_evaluator(
+            self,
+            evaluator_config: Optional[Dict] = None
+    ):
+        evaluator_config = evaluator_config if evaluator_config is not None else self.config.evaluator_config
+
+        assert "runner" in self.config.run_config, "Evaluator name must be provided."
+
+        evaluator_name = self.config.run_config.runner
+        evaluator_cls = registry.get_evaluator_class(evaluator_name)
+        assert evaluator_cls is not None, "Trainer {} not properly registered.".format(evaluator_name)
+
+        model = self.build_model()
+        collator = self.build_collator()
+        dataset = self.build_datasets()
+
+        return evaluator_cls(
+            model=model,
+            dataset=dataset['test'],
+            data_collator=collator,
+            **evaluator_config.config
         )

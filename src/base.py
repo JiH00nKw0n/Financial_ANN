@@ -4,7 +4,10 @@ from pydantic import BaseModel, ConfigDict, Extra
 from typing import Any, Optional, Union, List, Dict
 from collections import OrderedDict
 import os
+
+from torch import nn
 from tqdm import tqdm
+from transformers import PretrainedConfig, PreTrainedModel
 
 
 class BaseEmbedding(BaseModel):
@@ -295,4 +298,47 @@ class BaseEvaluateTask(BaseTask):
         raise NotImplementedError
 
 class BaseEvaluator(BaseModel):
-    pass
+    model: Any
+    dataset: Any
+    data_collator: Any
+
+class BaseModelConfig(PretrainedConfig):
+    model_type = 'base'
+
+    def __init__(
+            self,
+            hidden_size: int = 4096,
+            intermediate_size: int = 8192,
+            hidden_act: str = 'relu',
+            classifier_dropout: float = 0.0,
+            hidden_droput: float = 0.0,
+            num_labels: int = 2,
+            num_hidden_layers: int = 1,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.hidden_size = hidden_size
+        self.intermediate_size = intermediate_size
+        self.hidden_act = hidden_act
+        self.classifier_dropout = classifier_dropout
+        self.hidden_dropout = hidden_droput
+        self.num_labels = num_labels
+        self.num_mlp_layers = num_hidden_layers
+
+class BasePreTrainedModel(PreTrainedModel):
+    """
+    An abstract class to handle weights initialization and a simple interface for downloading and loading pretrained
+    models.
+    """
+
+    config_class = BaseConfig
+    base_model_prefix = "base"
+    supports_gradient_checkpointing = True
+
+    def _init_weights(self, module):
+        """Initialize the weights"""
+        if isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
+        if isinstance(module, nn.Linear) and module.bias is not None:
+            module.bias.data.zero_()
