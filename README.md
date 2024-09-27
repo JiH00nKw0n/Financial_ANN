@@ -31,7 +31,7 @@ def main() -> None:
 
 Task.py
 ```python
-    trainer = task.build_trainer()
+trainer = task.build_trainer()
 ```
 여기서 build_trainer의 역할은 task라는 class에 저장된 config 변수에 따라 `model`, `embedding(feature 추출)`, `collator`, `dataset`을 불러와 Trainer를 선언하는 역할.
 각각 `build_model`, `build_embedding`, `build_collator`, `build_dataset`이라는 함수를 사용하여 load함

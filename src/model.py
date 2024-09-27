@@ -46,7 +46,7 @@ class MLPWithTwoHiddenLayers(nn.Module):
 
 @registry.register_model("MLPModelForTokenClassification")
 class MLPModelForTokenClassification(BasePreTrainedModel):
-    config_class = MLPConfig
+    config_class = MLPModelConfig
     base_model_prefix = MODEL_TYPE
     supports_gradient_checkpointing = False
 
@@ -101,5 +101,5 @@ class MLPModelForTokenClassification(BasePreTrainedModel):
         )
 
 
-AutoConfig.register(MODEL_TYPE, BaseConfig)
-AutoModel.register(BaseConfig, MLPModelForTokenClassification)
+AutoConfig.register(MODEL_TYPE, MLPModelConfig)
+AutoModel.register(MLPModelConfig, MLPModelForTokenClassification)
