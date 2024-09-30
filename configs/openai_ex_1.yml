@@ -1,6 +1,6 @@
 run:
   task: 'TrainTask'
-  runner: 'NegCLIPTrainer'
+  runner: 'SequentialTrainer'
   seed: 2024
 
 model:
@@ -13,18 +13,18 @@ model:
     classifier_dropout: 0.0
     hidden_dropout: 0.0
     num_labels: 2
-    num_mlp_layers: 2
+    num_mlp_layers: 0
 
 
 embedding:
   cls_name: 'OpenAIEmbedding'
   config:
     name_or_path: 'text-embedding-3-large'
-    max_length: 512
+    max_length: 8192
     batch_size: 512
     use_cache: True
-    cache_dir: 'TBD'
-    device: 'cuda'
+    cache_dir: '/mnt/elice/working/_embedding_cache'
+    device: 'cpu'
 
 collator:
   cls_name: 'CollatorForBinaryClassification'
@@ -33,7 +33,7 @@ collator:
     precision: "float32"
     convert_to_numpy: False
     convert_to_tensor: True
-    device: 'cuda'
+    device: 'cpu'
     normalize_embeddings: True
 
 dataset:
@@ -44,26 +44,22 @@ dataset:
       - 'val'
 
 trainer:
-  output_dir: 'TBD'
-  run_name : 'OpenAI-512' # for wandb
+  output_dir: '/mnt/elice/working/outputs'
+  run_name : 'OpenAI-8192-bs64-lr1.0e-5-linear' # for wandb
   learning_rate: &learning_rate 1.0e-5
   lr_scheduler_type: 'cosine'
-  warmup_steps: &warmup_steps 10
+  warmup_steps: &warmup_steps 1280
   weight_decay: &weight_decay 1.0e-1
-  save_steps: 10
+  save_steps: 1280
   logging_steps : 1
   do_eval: True
   eval_strategy: 'steps'
-  eval_steps: 10
-  num_train_epochs: 4
-  per_device_train_batch_size : &per_device_batch_size 4096 # default 1024
-  gradient_accumulation_steps: &gradient_accumulation 2
+  eval_steps: 128
+  num_train_epochs: 2
+  per_device_train_batch_size : &per_device_batch_size 64 # default 1024
+  gradient_accumulation_steps: &gradient_accumulation 1
   # For memory efficiency.
-  gradient_checkpointing : True
-  # NOTE : need to use this option to cope with DDP
-  gradient_checkpointing_kwargs:
-    use_reentrant: False
-  ddp_find_unused_parameters: False
+  gradient_checkpointing : False
   fp16: &fp16 True # use torch.float16
   fp16_opt_level : '01'
   bf16: &bf16 False # Use torch.bfloat16

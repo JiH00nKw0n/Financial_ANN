@@ -331,7 +331,7 @@ class BasePreTrainedModel(PreTrainedModel):
     models.
     """
 
-    config_class = BaseConfig
+    config_class = BaseModelConfig
     base_model_prefix = "base"
     supports_gradient_checkpointing = True
 

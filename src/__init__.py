@@ -5,7 +5,9 @@ from .base import (
     BaseEvaluateTask,
     BaseEvaluator,
     BaseCollator,
-    BaseEmbedding
+    BaseEmbedding,
+    BaseModelConfig,
+    BasePreTrainedModel
 )
 
 from .builder import FinancialTranscriptBuilder
@@ -13,7 +15,7 @@ from .callback import CustomWandbCallback
 from .collator import CollatorForBinaryClassification
 from .config import BaseConfig, TrainConfig, EvaluateConfig
 from .embedding import OpenAIEmbedding, LinqEmbedding
-from .model import BaseConfig, BaseModelForTokenClassification
+from .model import MLPModelConfig, MLPModelForTokenClassification
 from .task import TrainTask
 from .trainer import SequentialTrainer
 from .utils import *
