@@ -24,11 +24,11 @@ class CollatorForBinaryClassification(BaseCollator):
         output['inputs_embeds'] = inputs_embeds
 
         start = torch.FloatTensor([i['d+1_open'] for i in inputs])
-        output['start'] = start
+        # output['start'] = start
         end = torch.FloatTensor([i['d+3_close'] for i in inputs])
-        output['end'] = end
+        # output['end'] = end
 
-        labels = start > end
+        labels = start < end
         output['labels'] = labels.long().to(self.device)
 
         return output

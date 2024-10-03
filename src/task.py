@@ -1,10 +1,11 @@
 import logging
 from typing import Optional, Dict, Type, TypeVar
 
+import numpy as np
 from datasets import Dataset, IterableDataset
 from transformers import (
     PreTrainedModel,
-    TrainingArguments,
+    TrainingArguments, EvalPrediction,
 )
 
 from . import BaseEvaluateTask
@@ -30,6 +31,19 @@ def setup_task(config):
 
     return task
 
+
+def compute_metrics(pred: EvalPrediction):
+    # Extract the logits (predictions) and labels from EvalPrediction
+    logits = pred.predictions
+    labels = pred.label_ids
+
+    # Apply the 0.5 threshold to logits to convert to binary predictions
+    predictions = (logits >= 0.5).astype(int)
+
+    # Calculate accuracy
+    accuracy = np.mean(predictions == labels)
+
+    return {"accuracy": accuracy}
 
 @registry.register_task('TrainTask')
 class TrainTask(BaseTrainTask):
@@ -117,6 +131,7 @@ class TrainTask(BaseTrainTask):
             train_dataset=dataset['train'],
             eval_dataset=dataset['val'],
             data_collator=collator,
+            compute_metrics=compute_metrics,
         )
 
 
