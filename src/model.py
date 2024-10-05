@@ -187,14 +187,17 @@ class MLPModelForMSELoss(BasePreTrainedModel):
             `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
         """
 
-        hidden_states = torch.norm(inputs_embeds[:, :self.config.hidden_size], p=2, dim=-1, keepdim=True)
+        sliced_embed = inputs_embeds[:, :self.config.hidden_size].detach()
+
+        hidden_states = sliced_embed / sliced_embed.norm(p=2, dim=-1, keepdim=True)
+        hidden_states = hidden_states.detach()
 
         logits = self.layer(hidden_states)
 
         loss = None
         if labels is not None:
             mse_loss_fn = nn.MSELoss()
-            loss = mse_loss_fn(logits, labels)
+            loss = mse_loss_fn(logits, labels.float().unsqueeze(-1))
 
         return TokenClassifierOutput(
             loss=loss,
