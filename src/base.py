@@ -20,7 +20,7 @@ class BaseEmbedding(BaseModel):
     state_dict_cache: Optional[OrderedDict] = None
     cache_dir: Optional[str] = None
     save_path: Optional[str] = None
-    device: Optional[str] = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device: Optional[str] = 'cpu'
 
     def model_post_init(self, __context: Any):
         super().model_post_init(__context)
@@ -172,7 +172,7 @@ class BaseCollator(BaseModel):
     precision: Optional[str] = "float32"
     convert_to_numpy: bool = False
     convert_to_tensor: bool = True
-    device: Optional[str] = 'cuda'
+    device: Optional[str] = 'cpu'
     normalize_embeddings: bool = True
 
     def __call__(self, inputs, **kwargs):

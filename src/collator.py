@@ -39,7 +39,7 @@ class CollatorForClassificationWithNeutral(BaseCollator):
     max_length: int = 4096
     padding: bool = True
     truncation: bool = True
-    return_tensor: str = 'pt'
+    return_tensors: str = 'pt'
 
     def __call__(self, inputs, **kwargs):
         kwargs = dict(
@@ -47,7 +47,7 @@ class CollatorForClassificationWithNeutral(BaseCollator):
                 "max_length": self.max_length,
                 "padding": self.padding,
                 "truncation": self.truncation,
-                "return_tensor": self.return_tensor,
+                "return_tensors": self.return_tensors,
             }, **kwargs
         )
         return self._process(inputs, **kwargs)
