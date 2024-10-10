@@ -3,15 +3,16 @@ from typing import Optional, Dict, Type, TypeVar
 
 import numpy as np
 from datasets import Dataset, IterableDataset
+from peft import LoraConfig
 from transformers import (
     PreTrainedModel,
-    TrainingArguments, EvalPrediction,
+    TrainingArguments, EvalPrediction, AutoTokenizer,
 )
 
-from . import BaseEvaluateTask
-from .registry import registry
+from . import BaseEvaluateTask, load_yml
 from .base import BaseTrainTask
 from .config import TrainConfig, EvaluateConfig
+from .registry import registry
 
 ModelType = Type[PreTrainedModel]
 DatasetType = TypeVar("DatasetType", Dataset, IterableDataset)
@@ -21,6 +22,7 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
+
 
 def setup_task(config):
     assert "task" in config.run_config, "Task name must be provided."
@@ -32,18 +34,59 @@ def setup_task(config):
     return task
 
 
+# def compute_metrics(pred: EvalPrediction):
+#     # Extract the logits (predictions) and labels from EvalPrediction
+#     logits = pred.predictions
+#     labels = pred.label_ids
+#
+#     # Apply the 0.5 threshold to logits to convert to binary predictions
+#     predictions = (logits >= 0.5).astype(int)
+#
+#     # Calculate accuracy
+#     accuracy = np.mean(predictions == labels)
+#
+#     return {"accuracy": accuracy}
+
 def compute_metrics(pred: EvalPrediction):
     # Extract the logits (predictions) and labels from EvalPrediction
     logits = pred.predictions
     labels = pred.label_ids
 
-    # Apply the 0.5 threshold to logits to convert to binary predictions
-    predictions = (logits >= 0.5).astype(int)
+    # Convert logits to predicted labels by taking the argmax (for multi-class classification)
+    predictions = np.argmax(logits, axis=-1)
 
-    # Calculate accuracy
-    accuracy = np.mean(predictions == labels)
+    # Calculate the overall accuracy (for all labels 0, 1, 2)
+    overall_accuracy = np.mean(predictions == labels)
 
-    return {"accuracy": accuracy}
+    # Initialize true positives, false positives, false negatives for each class
+    true_positives = np.zeros(3)
+    false_positives = np.zeros(3)
+    false_negatives = np.zeros(3)
+
+    for i in range(3):  # Assuming 3 classes: 0, 1, 2
+        true_positives[i] = np.sum((predictions == i) & (labels == i))
+        false_positives[i] = np.sum((predictions == i) & (labels != i))
+        false_negatives[i] = np.sum((predictions != i) & (labels == i))
+
+    # Calculate precision and recall for each class
+    precision = true_positives / (true_positives + false_positives + 1e-8)  # Avoid division by zero
+    recall = true_positives / (true_positives + false_negatives + 1e-8)
+
+    # Calculate F1 score for each class
+    f1_per_class = 2 * (precision * recall) / (precision + recall + 1e-8)
+
+    # Macro F1 score (average F1 across all classes)
+    f1_score_macro = np.mean(f1_per_class)
+
+    # Calculate accuracy for only 0 and 2 labels (ignoring label 1)
+    mask_02 = (labels == 0) | (labels == 2)
+    accuracy_02 = np.mean(predictions[mask_02] == labels[mask_02])
+
+    return {
+        "overall_accuracy": overall_accuracy,
+        "f1_score_macro": f1_score_macro,
+        "accuracy_pos&neg": accuracy_02
+    }
 
 @registry.register_task('TrainTask')
 class TrainTask(BaseTrainTask):
@@ -63,8 +106,16 @@ class TrainTask(BaseTrainTask):
         model_cfg = config_cls(**model_config.config)
         model = model_cls(model_cfg)
 
-        return model.cuda().train()
+        if model_config.lora is not None:
+            lora_config_path = model_config.lora
 
+            # Apply LoRA configuration to text model
+            if lora_config_path is not None:
+                lora_config = load_yml(lora_config_path)
+                peft_config = LoraConfig(**lora_config)
+                model.set_model_to_lora(peft_config)
+
+        return model.cuda().train()
 
     def build_embedding(
             self,
@@ -135,6 +186,26 @@ class TrainTask(BaseTrainTask):
         )
 
 
+@registry.register_task('LinqTrainTask')
+class LinqTrainTask(BaseTrainTask):
+
+    def build_collator(
+            self,
+            collator_config: Optional[Dict] = None
+    ):
+        collator_config = collator_config if collator_config is not None else self.config.collator_config
+
+        collator_name = collator_config.cls_name
+        collator_cls = registry.get_collator_class(collator_name)
+
+        assert collator_cls is not None, "Collator {} not properly registered.".format(collator_name)
+
+        return collator_cls(
+            feature_extractor=AutoTokenizer.from_pretrained(collator_config.pretrained_model_name_or_path),
+            **collator_config.config
+        )
+
+
 @registry.register_task('EvaluateTask')
 class EvaluateTask(BaseEvaluateTask):
     config: EvaluateConfig
@@ -149,7 +220,6 @@ class EvaluateTask(BaseEvaluateTask):
         model = model_cls(**model_config.config)
 
         return model.cuda().eval()
-
 
     def build_embedding(
             self,

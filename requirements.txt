@@ -1,9 +1,7 @@
-pydantic~=2.9.2
 openai~=1.47.0
 transformers~=4.44.2
 tiktoken~=0.7.0
-numpy~=2.1.1
-torch~=2.4.1
 tqdm~=4.66.5
 datasets~=3.0.0
 omegaconf~=2.3.0
+peft~=0.13.1

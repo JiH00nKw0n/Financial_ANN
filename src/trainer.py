@@ -1,40 +1,55 @@
-import torch
-from transformers import Trainer
-from torch.utils.data import SequentialSampler
-import datasets
 from typing import Optional
 
-from transformers.trainer_pt_utils import LengthGroupedSampler
+import torch
+from torch.utils.data import RandomSampler
+from transformers import Trainer
+from transformers.trainer_utils import has_length
 
 from .registry import registry
 
-@registry.register_trainer('SequentialTrainer')
-class SequentialTrainer(Trainer):
+@registry.register_trainer('RandomSamplerTrainer')
+class RandomSamplerTrainer(Trainer):
+    """
+    A subclass of the `BaseTrainer` that overrides the method for
+    getting the sampler used for the training dataset. The sampler used
+    in this class is a basic `RandomSampler`.
+    """
 
     def _get_train_sampler(self) -> Optional[torch.utils.data.Sampler]:
         """
-        Returns a SequentialSampler for the training dataset instead of the default RandomSampler.
+        Returns a `RandomSampler` for the training dataset.
+
+        Returns:
+            `Optional[torch.utils.data.Sampler]`: A `RandomSampler` for the dataset if available, otherwise `None`.
+
+        Raises:
+            ValueError: If `group_by_length` is set to `True`, since this trainer doesn't support grouping by length.
         """
-        if self.train_dataset is None or not hasattr(self.train_dataset, "__len__"):
+        if self.train_dataset is None or not has_length(self.train_dataset):
             return None
-
-        # Build the sampler. If group_by_length is set, use LengthGroupedSampler, otherwise use SequentialSampler.
         if self.args.group_by_length:
-            if datasets and isinstance(self.train_dataset, datasets.Dataset):
-                lengths = (
-                    self.train_dataset[self.args.length_column_name]
-                    if self.args.length_column_name in self.train_dataset.column_names
-                    else None
-                )
-            else:
-                lengths = None
-            model_input_name = self.tokenizer.model_input_names[0] if self.tokenizer is not None else None
-            return LengthGroupedSampler(
-                self.args.train_batch_size * self.args.gradient_accumulation_steps,
-                dataset=self.train_dataset,
-                lengths=lengths,
-                model_input_name=model_input_name,
-            )
+            raise ValueError("Argument `group_by_length` must be `False`.")
+        else:
+            return RandomSampler(self.train_dataset)
 
-        # Use SequentialSampler for ordered iteration.
-        return SequentialSampler(self.train_dataset)
+    def compute_loss(self, model, inputs, return_outputs=False):
+        """
+        Computes the loss for the current batch of inputs using the negative CLIP loss function.
+
+        Args:
+            model: The model to be used for generating the logits.
+            inputs: A dictionary of inputs that includes features such as images and captions.
+            return_outputs (`bool`, *optional*, defaults to `False`): If `True`, returns both the loss and the model outputs.
+
+        Returns:
+            `torch.Tensor` or `Tuple[torch.Tensor, Any]`: If `return_outputs` is `True`, returns a tuple of (loss, outputs).
+            Otherwise, returns only the loss.
+        """
+        inputs = dict(inputs, **{
+            'return_dict': True,
+            'return_loss': True,
+        })
+        outputs = model(**inputs)
+        loss = outputs.loss
+
+        return (loss, outputs) if return_outputs else loss

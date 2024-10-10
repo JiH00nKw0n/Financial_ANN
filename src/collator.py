@@ -2,6 +2,7 @@ from typing import List, Dict
 from collections import defaultdict
 
 import torch
+from transformers import BatchEncoding
 
 from .base import BaseCollator
 from .registry import registry
@@ -33,4 +34,43 @@ class CollatorForBinaryClassification(BaseCollator):
 
         return output
 
+@registry.register_collator('CollatorForBinaryClassification')
+class CollatorForClassificationWithNeutral(BaseCollator):
+    max_length: int = 4096
+    padding: bool = True
+    truncation: bool = True
+    return_tensor: str = 'pt'
 
+    def __call__(self, inputs, **kwargs):
+        kwargs = dict(
+            {
+                "max_length": self.max_length,
+                "padding": self.padding,
+                "truncation": self.truncation,
+                "return_tensor": self.return_tensor,
+            }, **kwargs
+        )
+        return self._process(inputs, **kwargs)
+
+    def _process(self, inputs: List[Dict], **kwargs) -> BatchEncoding:
+        colums_to_check = ['text', 'ticker', 'event_start_at_et', 'd+1_open', 'd+2_open', 'd+3_open', 'd+1_close',
+                           'd+2_close', 'd+3_close']
+
+        # Filter inputs by checking only the values in columns_to_check
+        inputs = [i for i in inputs if all(i[col] is not None for col in colums_to_check if col in i)]
+
+        texts = [i['text'] for i in inputs]
+        batch_dict: BatchEncoding = self.feature_extractor(texts, **kwargs)
+
+        start = torch.FloatTensor([i['d+1_open'] for i in inputs])
+        end = torch.FloatTensor([i['d+3_close'] for i in inputs])
+
+        # Calculate the percentage change between d+1_open and d+3_close
+        percentage_change = (end - start) / start * 100
+
+        # Assign labels based on the percentage change
+        labels = torch.where(percentage_change >= 3, 2,torch.where(percentage_change <= -3, 0, 1))
+
+        batch_dict.data['labels'] = labels.long().to(self.device)
+
+        return batch_dict
