@@ -4,7 +4,7 @@ run:
   seed: 2024
 
 model:
-  model_cls_name: 'LinqForSequenceClassification'
+  model_cls_name: 'LinqModelForSequenceClassificationWithLinear'
   config_cls_name: 'LinqConfig'
   config:
     torch_dtype: 'fp16'
