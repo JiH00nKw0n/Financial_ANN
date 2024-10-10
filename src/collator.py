@@ -34,7 +34,7 @@ class CollatorForBinaryClassification(BaseCollator):
 
         return output
 
-@registry.register_collator('CollatorForBinaryClassification')
+@registry.register_collator('CollatorForClassificationWithNeutral')
 class CollatorForClassificationWithNeutral(BaseCollator):
     max_length: int = 4096
     padding: bool = True

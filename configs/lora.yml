@@ -2,22 +2,14 @@ auto_mapping: null
 base_model_name_or_path: "Linq-AI-Research/Linq-Embed-Mistral"
 bias: "none"
 fan_in_fan_out: false
-inference_mode: true
 init_lora_weights: true
 layers_pattern: null
 layers_to_transform: null
 lora_alpha: 32
 lora_dropout: 0.1
 modules_to_save: null
-peft_type: "LORA",
+peft_type: "LORA"
 r: 16
 revision: null
-target_modules:
-  - "q_proj"
-  - "k_proj"
-  - "v_proj"
-  - "o_proj"
-  - "down_proj"
-  - "up_proj"
-  - "gate_proj"
+target_modules: 'all-linear'
 task_type: "FEATURE_EXTRACTION"

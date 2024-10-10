@@ -9,7 +9,8 @@ from transformers import (
     TrainingArguments, EvalPrediction, AutoTokenizer,
 )
 
-from . import BaseEvaluateTask, load_yml
+from . import BaseEvaluateTask
+from .utils import load_yml
 from .base import BaseTrainTask
 from .config import TrainConfig, EvaluateConfig
 from .registry import registry
@@ -187,7 +188,7 @@ class TrainTask(BaseTrainTask):
 
 
 @registry.register_task('LinqTrainTask')
-class LinqTrainTask(BaseTrainTask):
+class LinqTrainTask(TrainTask):
 
     def build_collator(
             self,

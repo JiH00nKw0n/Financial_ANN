@@ -3,12 +3,15 @@ run:
   runner: 'RandomSamplerTrainer'
   seed: 2024
 
+embedding:
+  dummy: None
+
 model:
   model_cls_name: 'LinqModelForSequenceClassificationWithLinear'
   config_cls_name: 'LinqConfig'
   config:
     torch_dtype: 'fp16'
-  lora: 'configs/lora.yml'
+  lora: '/mnt/elice/working/financial_ann/Financial_ANN/configs/lora.yml'
 
 collator:
   cls_name: 'CollatorForClassificationWithNeutral'
@@ -17,7 +20,7 @@ collator:
   pretrained_model_name_or_path: 'Linq-AI-Research/Linq-Embed-Mistral'
 
 dataset:
-  cls_name: 'FinancialTranscriptBuilder'
+  cls_name: 'MergedFinancialTranscriptBuilder'
   config:
     split: 'train'
     train_years:
@@ -32,17 +35,17 @@ dataset:
       - 2017
 
 trainer:
-  output_dir: '/mnt/elice/working/outputs'
+  output_dir: '/mnt/elice/working/outputs/linq-4096-linear-bs128-lr-1.0e-4'
   run_name: 'Linq-4096-linear-bs128-lr-1.0e-4' # for wandb
-  learning_rate: &learning_rate 1.0e-5
+  learning_rate: &learning_rate 1.0e-4
   lr_scheduler_type: 'cosine'
   warmup_steps: &warmup_steps 1000
   weight_decay: &weight_decay 1.0e-1
-  save_strategy: 'epoch'  # 에폭마다 모델을 저장
+  save_strategy: 'no'  # 에폭마다 모델을 저장
   logging_steps: 1000
   do_eval: True
   eval_strategy: 'epoch'  # 에폭마다 평가
-  num_train_epochs: 50
+  num_train_epochs: 30
   per_device_train_batch_size: &per_device_batch_size 64 # default 1024
   gradient_accumulation_steps: &gradient_accumulation 1
   # For memory efficiency.

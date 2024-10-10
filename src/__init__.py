@@ -17,5 +17,5 @@ from .config import BaseConfig, TrainConfig, EvaluateConfig
 from .embedding import OpenAIEmbedding, LinqEmbedding
 from .model import MLPModelConfig, MLPModelForTokenClassification, MSEMLPModelConfig, MLPModelForMSELoss
 from .task import TrainTask
-from .trainer import SequentialTrainer
+from .trainer import RandomSamplerTrainer
 from .utils import *
