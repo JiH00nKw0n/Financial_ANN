@@ -47,7 +47,6 @@ class RandomSamplerTrainer(Trainer):
         """
         inputs = dict(inputs, **{
             'return_dict': True,
-            'return_loss': True,
         })
         outputs = model(**inputs)
         loss = outputs.loss

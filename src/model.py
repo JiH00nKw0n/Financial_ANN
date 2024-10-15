@@ -323,6 +323,8 @@ class LinqPreTrainedModel(PreTrainedModel):
 @registry.register_model("LinqModelForSequenceClassificationWithMLP")
 class LinqModelForSequenceClassificationWithMLP(LinqPreTrainedModel):
     def __init__(self, config):
+
+        self.num_labels = config.num_labels
         super().__init__(config)
         self.score = LinqMLP(config)
 
@@ -424,6 +426,8 @@ class LinqModelForSequenceClassificationWithMLP(LinqPreTrainedModel):
 @registry.register_model("LinqModelForSequenceClassificationWithLinear")
 class LinqModelForSequenceClassificationWithLinear(LinqPreTrainedModel):
     def __init__(self, config):
+
+        self.num_labels = config.num_labels
         super().__init__(config)
         self.score = nn.Linear(config.hidden_size, config.num_labels)
 
