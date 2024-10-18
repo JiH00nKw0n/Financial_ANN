@@ -69,7 +69,7 @@ class CollatorForClassificationWithNeutral(BaseCollator):
         percentage_change = (end - start) / start * 100
 
         # Assign labels based on the percentage change
-        labels = torch.where(percentage_change >= 3, 2,torch.where(percentage_change <= -3, 0, 1))
+        labels = torch.where(percentage_change >= 3, 2, torch.where(percentage_change <= -3, 0, 1))
 
         batch_dict.data['labels'] = labels.long().to(self.device)
 

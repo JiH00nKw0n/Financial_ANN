@@ -34,9 +34,8 @@ class MergedFinancialTranscriptBuilder(BaseBuilder):
 
         def convert_to_date(example):
             if example['event_start_at_et']:
-                # event_start_at_et 값이 있는 경우 변환
                 example['event_start_at_et'] = datetime.strptime(example['event_start_at_et'],
-                                                                 "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d")
+                                                                 "%Y-%m-%d %H:%M:%S.%f").strftime("%Y-%m-%d")
             return example
 
         # 변환 적용
